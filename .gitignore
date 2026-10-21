@@ -1,0 +1,119 @@
+# ===================== C++ 编译产物 =====================
+*.o
+*.obj
+*.so
+*.so.*
+*.a
+*.lib
+*.dll
+*.dylib
+*.exe
+*.out
+*.app
+*.i
+*.ii
+*.s
+*.bc
+*.gcno
+*.gcda
+*.gcov
+bin/
+lib/
+
+# 预编译头
+*.gch
+*.pch
+
+# 链接器生成
+*.map
+*.res
+
+# ===================== CMake =====================
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CMakeUserPresets.json
+CMakePresets.json.user
+
+# ===================== Make / Ninja =====================
+Makefile
+*.mk
+build/
+_build/
+_build-*/
+out/
+cmake-build-*/
+
+# ===================== 测试、覆盖率、性能 =====================
+*.profraw
+*.profdata
+*.perf
+gmon.out
+core
+core.*
+
+# ===================== 第三方依赖（按需取舍） =====================
+# 如果使用 submodule 就不要注释掉这行；单纯放外部库就开启
+# thirdparty/build/
+# thirdparty/*/build/
+
+# ===================== IDE / Editor =====================
+## VSCode
+.vscode/
+.vs/
+*.code-workspace
+
+## CLion / JetBrains
+.idea/
+cmake-build-debug/
+cmake-build-release/
+cmake-build-relwithdebinfo/
+cmake-build-minsizerel/
+*.iml
+*.iws
+*.ipr
+
+## Qt
+*.pro.user
+*.pro.user.*
+*.qbs.user
+qtcreator-build/
+
+## Visual Studio
+*.vcxproj.user
+*.vcxproj.filters
+*.sln.docstates
+
+## Sublime
+*.sublime-project
+*.sublime-workspace
+
+## Vim / Neovim
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ===================== 系统杂项 =====================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# ===================== 日志、临时文件 =====================
+*.log
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# ===================== 私有配置、密钥 =====================
+.env
+.env.local
+*.key
+*.pem
+*.crt
+*.secret
+config.local.yaml
