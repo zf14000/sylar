@@ -1,0 +1,19 @@
+value:
+  int: 100
+  float: 3.14
+  double: 3.1415926
+  string: '%H:%M:%S'
+  list: [11, 12, 13]
+  vector: [11, 12, 13]
+  set: [11, 13, 11, 12]
+  unordered_set: [11, 13, 11, 12]
+  map:
+    key11: value11
+    key33: value33
+    key22: value22
+    key44: value44
+  unordered_map:
+    key11: value11
+    key33: value33
+    key22: value22
+    key44: value44
