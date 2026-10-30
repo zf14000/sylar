@@ -296,6 +296,9 @@ void LogFormatter::format(std::ostream& os, LogEvent::ptr event) {
 LogAppender::LogAppender(LogLevel::Level level) : m_level(level) {
 }
 
+StdoutLogAppender::StdoutLogAppender(LogLevel::Level level) : LogAppender(level) {
+}
+
 void StdoutLogAppender::log(LogEvent::ptr event, std::shared_ptr<Logger> logger) {
     if (event->getLevel() < getLevel()) {
         return;
@@ -329,7 +332,7 @@ bool FileLogAppender::reopen() {
     if (m_ofs.is_open()) {
         m_ofs.close();
     }
-    m_ofs.open(m_file);
+    m_ofs.open(m_file, std::ios_base::app);
     return m_ofs.is_open();
 }
 
@@ -403,15 +406,15 @@ LogEventWrap::~LogEventWrap() {
 LoggerManager::LoggerManager() {
     m_root.reset(new Logger);
     m_root->addAppender(LogAppender::ptr(new StdoutLogAppender));
-    addLogger(m_root);
+    addLogger("root", m_root);
 }
 
-void LoggerManager::addLogger(Logger::ptr logger) {
-    m_loggers[logger->getName()] = logger;
+void LoggerManager::addLogger(const std::string& name, Logger::ptr logger) {
+    m_loggers[name] = logger;
 }
 
-void LoggerManager::delLogger(Logger::ptr logger) {
-    m_loggers.erase(logger->getName());
+void LoggerManager::delLogger(const std::string& name) {
+    m_loggers.erase(name);
 }
 
 void LoggerManager::clearLoggers() {

@@ -2,9 +2,11 @@
 #define __SYLAR_CONFIG_H__
 
 #include "log.h"
+#include "log_config.h"
 #include "abi_util.h"
 #include <yaml-cpp/yaml.h>
 #include <boost/lexical_cast.hpp>
+#include <functional>
 #include <cstring>
 #include <list>
 #include <vector>
@@ -220,10 +222,109 @@ public:
     }
 };
 
+template<>
+class LexicalCast<std::string, LoggerDefine> {
+public:
+    LoggerDefine operator()(const std::string& str) const {
+        YAML::Node node = YAML::Load(str);
+        LoggerDefine logger;
+
+        if (!node["name"].IsDefined()) {
+            throw std::runtime_error("lexical_cast string to LoggerDefine failed, log name is not defined");
+        }
+        logger.name = node["name"].as<std::string>();
+
+        if (node["level"].IsDefined()) {
+            std::string level = node["level"].as<std::string>();
+            if (level == "UNKNOWN") {
+                throw std::runtime_error("log: " + logger.name +
+                    " lexical_cast string to LoggerDefine failed, log level is unknown");
+            }
+            logger.level = level;
+        }
+
+        if (node["formatter"].IsDefined()) {
+            logger.formatter = node["formatter"].as<std::string>();
+        }
+
+        if (node["appenders"].IsDefined()) {
+            for (size_t i = 0; i < node["appenders"].size(); ++i) {
+                LogAppenderDefine appender;
+                YAML::Node node_appender = node["appenders"][i];
+
+                if (node_appender["level"].IsDefined()) {
+                    std::string level = node_appender["level"].as<std::string>();
+                    if (level == "UNKNOWN") {
+                        throw std::runtime_error("log: " + logger.name +
+                            " lexical_cast string to LoggerDefine failed, appender level is unknown");
+                    }
+                    appender.level = level;
+                }
+
+                if (node_appender["type"].IsDefined()) {
+                    std::string type = node_appender["type"].as<std::string>();
+                    appender.type = type;
+                    if (type == "FileLogAppender") {
+                        if (!node_appender["file"].IsDefined()) {
+                            throw std::runtime_error("log: " + logger.name +
+                                " lexical_cast string to LogAppenderDefine failed, appender file is not defined");
+                        }
+                        appender.file = node_appender["file"].as<std::string>();
+                    }
+                } else {
+                    throw std::runtime_error("log: " + logger.name +
+                        " lexical_cast string to LoggerDefine failed, appender type is not defined");
+                }
+                
+                if (node_appender["formatter"].IsDefined()) {
+                    appender.formatter = node_appender["formatter"].as<std::string>();
+                }
+
+                logger.appenders.push_back(appender);
+            }
+        }
+
+        return logger;
+    }
+};
+
+template<>
+class LexicalCast<LoggerDefine, std::string> {
+public:
+    std::string operator()(const LoggerDefine& logger) const {
+        YAML::Node node;
+        node["name"] = logger.name;
+        if (logger.level != "UNKNOWN") {
+            node["level"] = logger.level;
+        }
+        if (!logger.formatter.empty()) {
+            node["formatter"] = logger.formatter;
+        }
+        for (auto& appender : logger.appenders) {
+            YAML::Node node_appender;
+            if (appender.level != "UNKNOWN") {
+                node_appender["level"] = appender.level;
+            }
+            node_appender["type"] = appender.type;
+            if (appender.type == "FileLogAppender") {
+                node_appender["file"] = appender.file;
+            }
+            if (!appender.formatter.empty()) {
+                node_appender["formatter"] = appender.formatter;
+            }
+            node["appenders"].push_back(node_appender);
+        }
+        std::stringstream ss;
+        ss << node;
+        return ss.str();
+    }
+};
+
 template<typename T, typename ToStr = LexicalCast<T, std::string>, typename FromStr = LexicalCast<std::string, T> >
 class ConfigVar : public ConfigVarBase {
 public:
     using ptr = std::shared_ptr<ConfigVar<T> >;
+    using on_change_cb = std::function<void(const T& oldVal, const T& newVal)>;
 
     ConfigVar(const std::string& name, const T& value, const std::string& desc)
         :ConfigVarBase(name, desc)
@@ -247,11 +348,23 @@ public:
         return toString(getValue());
     }
 
+    void setValue(const T& newVal) {
+        const T oldVal = m_value;
+        m_value = newVal;
+        for (auto& f : m_cbs) {
+            f(oldVal, newVal);
+        }
+    }
+
+    void addListener(on_change_cb cb) {
+        m_cbs.push_back(cb);
+    }
+
     T getValue() const { return m_value; }
     std::string getType() const override { return sylar::utils::ABI::TypeName<T>(); }
-    void setValue(const T& value) { m_value = value; }
 private:
     T m_value;
+    std::list<on_change_cb> m_cbs;
 };
 
 class Config {
@@ -270,10 +383,12 @@ public:
                     << " Expeted type is " << sylar::utils::ABI::TypeName<T>()
                     << ", actual type is " << config->getType();
             } else {
-                SYLAR_STREAM_LOG_ERROR(SYLAR_LOG_NAME("root")) << "Config name=" << name
+                SYLAR_STREAM_LOG_DEBUG(SYLAR_LOG_NAME("root")) << "Config name=" << name
                     << " is existed"
                     << ", type=" << configVar->getType()
+                    << ", value=" << configVar->toYamlString()
                     << ", description=" << configVar->getDesc();
+                return configVar;
             }
             return nullptr;
         } else {

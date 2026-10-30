@@ -41,6 +41,7 @@ void Config::LoadYaml(const std::string& file) {
             ss << i.second;
             cfg->fromString(ss.str());
         } else {
+            SYLAR_STREAM_LOG_ERROR(SYLAR_LOG_NAME("root")) << "Config::LookupBase(" << name << ") failed";
         }
     }
 }

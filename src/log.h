@@ -137,6 +137,7 @@ private:
 
 class StdoutLogAppender : public LogAppender {
 public:
+    StdoutLogAppender(LogLevel::Level level = LogLevel::Level::DEBUG);
     void log(LogEvent::ptr event, std::shared_ptr<Logger> logger) override;
 };
 
@@ -193,8 +194,8 @@ private:
 class LoggerManager {
 public:
     LoggerManager();
-    void addLogger(Logger::ptr logger);
-    void delLogger(Logger::ptr logger);
+    void addLogger(const std::string& name, Logger::ptr logger);
+    void delLogger(const std::string& name);
     void clearLoggers();
     Logger::ptr getLogger(const std::string& name) const;
     Logger::ptr getRoot() const;

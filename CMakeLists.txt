@@ -43,9 +43,10 @@ target_link_libraries(sylar
 )
 
 add_executable(test_log test/test_log.cpp)
-add_dependencies(test_log sylar)
 target_link_libraries(test_log PRIVATE sylar)
 
 add_executable(test_config test/test_config.cpp)
-add_dependencies(test_config sylar)
 target_link_libraries(test_config PRIVATE sylar)
+
+add_executable(test_log_config test/test_log_config.cpp)
+target_link_libraries(test_log_config PRIVATE sylar)
