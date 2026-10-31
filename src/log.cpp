@@ -306,6 +306,7 @@ void StdoutLogAppender::log(LogEvent::ptr event, std::shared_ptr<Logger> logger)
     if (!getFormatter()) {
         setFormatter(logger->getFormatter());
     }
+    LockType::Lock lock(m_lock);
     getFormatter()->format(std::cout, event);
 }
 
@@ -340,6 +341,7 @@ void FileLogAppender::log(LogEvent::ptr event, std::shared_ptr<Logger> logger) {
     if (event->getLevel() < getLevel()) {
         return;
     }
+    LockType::Lock lock(m_lock);
     reopen();
     getFormatter()->format(m_ofs, event);
 }
@@ -356,7 +358,11 @@ void Logger::log(LogLevel::Level level, LogEvent::ptr event) {
     }
     event->setLevel(level);
     event->setLogName(m_name);
-    for (auto& appender : m_appenders) {
+
+    LockType::Lock lock(m_lock);
+    auto appenders = m_appenders;
+    lock.unlock();
+    for (auto& appender : appenders) {
         appender->log(event, shared_from_this());
     }
 }
@@ -382,14 +388,17 @@ void Logger::fatal(LogEvent::ptr event) {
 }
 
 void Logger::addAppender(LogAppender::ptr appender) {
+    LockType::Lock lock(m_lock);
     m_appenders.push_back(appender);
 }
 
 void Logger::delAppender(LogAppender::ptr appender) {
+    LockType::Lock lock(m_lock);
     m_appenders.remove(appender);
 }
 
 void Logger::clearAppenders() {
+    LockType::Lock lock(m_lock);
     m_appenders.clear();
 }
 
@@ -410,18 +419,22 @@ LoggerManager::LoggerManager() {
 }
 
 void LoggerManager::addLogger(const std::string& name, Logger::ptr logger) {
+    LockType::Lock lock(m_lock);
     m_loggers[name] = logger;
 }
 
 void LoggerManager::delLogger(const std::string& name) {
+    LockType::Lock lock(m_lock);
     m_loggers.erase(name);
 }
 
 void LoggerManager::clearLoggers() {
+    LockType::Lock lock(m_lock);
     m_loggers.clear();
 }
 
 Logger::ptr LoggerManager::getLogger(const std::string& name) const {
+    LockType::Lock lock(m_lock);
     auto it = m_loggers.find(name);
     if (it == m_loggers.end()) {
         return nullptr;

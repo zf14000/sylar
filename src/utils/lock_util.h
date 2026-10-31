@@ -173,6 +173,53 @@ private:
     std::atomic_flag m_lock;
 };
 
+class NullMutex : public NoCopyMove {
+public:
+    using Lock = LockGuard<NullMutex>;
+    NullMutex() {}
+    ~NullMutex() {}
+    bool lock() { return true; }
+    bool unlock() { return true; }
+private:
+    pthread_mutex_t m_mutex;
+};
+
+class NullSpinlock : public NoCopyMove {
+public:
+    using Lock = LockGuard<NullSpinlock>;
+    NullSpinlock() {}
+    ~NullSpinlock() {}
+    bool lock() { return true; }
+    bool unlock() { return true; }
+private:
+    pthread_spinlock_t m_lock;
+};
+
+class NullRWlock : public NoCopyMove {
+public:
+    using ReadLock = ReadLockGuard<NullRWlock>;
+    using WriteLock = WriteLockGuard<NullRWlock>;
+    
+    NullRWlock() {}
+    ~NullRWlock() {}
+    bool rdlock() { return true; }
+    bool wrlock() { return true; }
+    bool unlock() { return true; }
+private:
+    pthread_rwlock_t m_lock;
+};
+
+class NullCASLock : public NoCopyMove {
+public:
+    using Lock = LockGuard<NullCASLock>;
+    NullCASLock() {}
+    ~NullCASLock() {}
+    bool lock() { return true; }
+    bool unlock() { return true; }
+private:
+    std::atomic_flag m_lock;
+};
+
 }
 }
 

@@ -2,6 +2,7 @@
 #define __SYLAR_LOG_H__
 
 #include "singleton_util.h"
+#include "lock_util.h"
 #include <map>
 #include <list>
 #include <memory>
@@ -137,17 +138,24 @@ private:
 
 class StdoutLogAppender : public LogAppender {
 public:
+    using ptr = std::shared_ptr<StdoutLogAppender>;
+    using LockType = sylar::utils::Mutex;
     StdoutLogAppender(LogLevel::Level level = LogLevel::Level::DEBUG);
     void log(LogEvent::ptr event, std::shared_ptr<Logger> logger) override;
+private:
+    LockType m_lock;
 };
 
 class FileLogAppender : public LogAppender {
 public:
+    using ptr = std::shared_ptr<FileLogAppender>;
+    using LockType = sylar::utils::Mutex;
     FileLogAppender(const std::string& file, LogLevel::Level level = LogLevel::Level::DEBUG);
     ~FileLogAppender();
     bool reopen();
     void log(LogEvent::ptr event, std::shared_ptr<Logger> logger) override;
 private:
+    LockType m_lock;
     std::string m_file;
     std::ofstream m_ofs;
 };
@@ -155,6 +163,8 @@ private:
 class Logger : public std::enable_shared_from_this<Logger> {
 public:
     using ptr = std::shared_ptr<Logger>;
+    using LockType = sylar::utils::Mutex;
+
     Logger(const std::string& name = "root", LogLevel::Level level = LogLevel::Level::DEBUG);
     void log(LogLevel::Level level, LogEvent::ptr event);
     void debug(LogEvent::ptr event);
@@ -172,6 +182,7 @@ public:
     void setLevel(LogLevel::Level level) { m_level = level; }
     void setFormatter(LogFormatter::ptr formatter) { m_formatter = formatter; }
 private:
+    LockType m_lock;
     std::string m_name;
     LogLevel::Level m_level;
     LogFormatter::ptr m_formatter;
@@ -193,6 +204,7 @@ private:
 
 class LoggerManager {
 public:
+    using LockType = sylar::utils::Mutex;
     LoggerManager();
     void addLogger(const std::string& name, Logger::ptr logger);
     void delLogger(const std::string& name);
@@ -202,9 +214,10 @@ public:
 private:
     LoggerManager(const LoggerManager&) = delete;
     LoggerManager(const LoggerManager&&) = delete;
-    LoggerManager operator=(const LoggerManager&) = delete;
-    LoggerManager operator=(const LoggerManager&&) = delete;
+    LoggerManager& operator=(const LoggerManager&) = delete;
+    LoggerManager& operator=(const LoggerManager&&) = delete;
 private:
+    mutable LockType m_lock;
     std::map<std::string, Logger::ptr> m_loggers;
     Logger::ptr m_root;
 };
