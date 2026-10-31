@@ -16,6 +16,7 @@ add_compile_options(
     -O3
     -fPIC
     -ggdb
+    -lpthread
     -Wall
     -Wno-deprecated
     -Werror
@@ -30,6 +31,8 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 
 # yaml-cpp
 find_package(yaml-cpp REQUIRED)
+# pthread
+find_package(Threads REQUIRED)
 
 # sylar
 file(GLOB_RECURSE SYLAR_SRC ${PROJECT_SOURCE_DIR}/src/*.cpp)
@@ -38,8 +41,9 @@ target_include_directories(sylar PUBLIC
     ${PROJECT_SOURCE_DIR}/src
     ${PROJECT_SOURCE_DIR}/src/utils
 )
-target_link_libraries(sylar
-    PUBLIC yaml-cpp::yaml-cpp
+target_link_libraries(sylar PUBLIC 
+    yaml-cpp::yaml-cpp
+    Threads::Threads
 )
 
 add_executable(test_log test/test_log.cpp)
@@ -50,3 +54,6 @@ target_link_libraries(test_config PRIVATE sylar)
 
 add_executable(test_log_config test/test_log_config.cpp)
 target_link_libraries(test_log_config PRIVATE sylar)
+
+add_executable(test_thread test/test_thread.cpp)
+target_link_libraries(test_thread PRIVATE sylar)
