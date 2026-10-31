@@ -48,7 +48,10 @@ void Config::LoadYaml(const std::string& file) {
 
 std::string Config::ToString() {
     std::stringstream ss;
-    for (auto it = GetConfMap().begin(); it != GetConfMap().end(); ++it) {
+    LockType::ReadLock lock(GetLock());
+    mapType confMap = GetConfMap();
+    lock.unlock();
+    for (auto it = confMap.begin(); it != confMap.end(); ++it) {
         ss << it->first << ": " << it->second->toYamlString() << std::endl;
     }
     return ss.str();

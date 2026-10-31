@@ -25,8 +25,6 @@ public:
     virtual std::string getType() const = 0;
     std::string getName() const { return m_name; }
     std::string getDesc() const { return m_desc; }
-    void setName(const std::string& name) { m_name = name; }
-    void setDesc(const std::string& desc) { m_desc = desc; }
 private:
     std::string m_name;
     std::string m_desc;
@@ -325,6 +323,7 @@ class ConfigVar : public ConfigVarBase {
 public:
     using ptr = std::shared_ptr<ConfigVar<T> >;
     using on_change_cb = std::function<void(const T& oldVal, const T& newVal)>;
+    using LockType = sylar::utils::RWlock;
 
     ConfigVar(const std::string& name, const T& value, const std::string& desc)
         :ConfigVarBase(name, desc)
@@ -349,20 +348,30 @@ public:
     }
 
     void setValue(const T& newVal) {
+        LockType::WriteLock lock(m_lock);
         const T oldVal = m_value;
         m_value = newVal;
-        for (auto& f : m_cbs) {
+        auto cbs = m_cbs;
+        lock.unlock();
+
+        for (auto& f : cbs) {
             f(oldVal, newVal);
         }
     }
 
     void addListener(on_change_cb cb) {
+        LockType::WriteLock lock(m_lock);
         m_cbs.push_back(cb);
     }
 
-    T getValue() const { return m_value; }
+    T getValue() const {
+        LockType::ReadLock lock(m_lock);
+        return m_value;
+    }
+
     std::string getType() const override { return sylar::utils::ABI::TypeName<T>(); }
 private:
+    mutable LockType m_lock;
     T m_value;
     std::list<on_change_cb> m_cbs;
 };
@@ -371,6 +380,7 @@ class Config {
 public:
     using ptr = std::shared_ptr<Config>;
     using mapType = std::unordered_map<std::string, ConfigVarBase::ptr>;
+    using LockType = sylar::utils::RWlock;
     
     template<typename T>
     static typename ConfigVar<T>::ptr Lookup(const std::string& name, const T& defaultVal, const std::string& desc) {
@@ -393,12 +403,14 @@ public:
             return nullptr;
         } else {
             typename ConfigVar<T>::ptr configVar = typename ConfigVar<T>::ptr(new ConfigVar<T>(name, defaultVal, desc));
+            LockType::WriteLock lock(GetLock());
             GetConfMap()[name] = configVar;
             return configVar;
         }
     }
 
     static ConfigVarBase::ptr LookupBase(const std::string& name) {
+        LockType::ReadLock lock(GetLock());
         auto it = GetConfMap().find(name);
         return it == GetConfMap().end() ? nullptr : it->second;
     }
@@ -406,6 +418,11 @@ public:
     static void LoadYaml(const std::string& file);
     static std::string ToString();
 private:
+    static LockType& GetLock() {
+        static LockType m_lock;
+        return m_lock;
+    }
+
     static mapType& GetConfMap() {
         static mapType m_confMap;
         return m_confMap;

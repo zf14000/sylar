@@ -56,7 +56,7 @@ template <typename T>
 class ReadLockGuard {
 public:
     explicit ReadLockGuard(T& lock) : m_lock(lock) {
-        if (m_lock.lock()) {
+        if (m_lock.rdlock()) {
             m_isLock = true;
         }
     }
@@ -67,7 +67,7 @@ public:
 
     void lock() {
         if (!m_isLock) {
-            m_lock.lock();
+            m_lock.rdlock();
             m_isLock = true;
         }
     }
@@ -88,7 +88,7 @@ template <typename T>
 class WriteLockGuard {
 public:
     explicit WriteLockGuard(T& lock) : m_lock(lock) {
-        if (m_lock.lock()) {
+        if (m_lock.wrlock()) {
             m_isLock = true;
         }
     }
@@ -99,7 +99,7 @@ public:
 
     void lock() {
         if (!m_isLock) {
-            m_lock.lock();
+            m_lock.wrlock();
             m_isLock = true;
         }
     }
