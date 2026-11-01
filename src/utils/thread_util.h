@@ -15,7 +15,9 @@ public:
 
     static Thread::ptr Create(const std::string& name, std::function<void(void* arg)> cb, void* arg);
     static pid_t GetTid();
-    static const std::string& GetName();
+    static pid_t GetThreadId();
+    static const std::string& GetThreadName();
+    static void SetThreadName(const std::string& name);
 
     ~Thread();
     bool join();

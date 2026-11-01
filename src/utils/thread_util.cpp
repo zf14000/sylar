@@ -37,8 +37,16 @@ pid_t Thread::GetTid() {
     return t_tid;
 }
 
-const std::string& Thread::GetName() {
+pid_t Thread::GetThreadId() {
+    return syscall(SYS_gettid);
+}
+
+const std::string& Thread::GetThreadName() {
     return t_name;
+}
+
+void Thread::SetThreadName(const std::string& name) {
+    t_name = name;
 }
 
 Thread::Thread(const std::string& name, std::function<void(void* arg)> cb, void* arg)

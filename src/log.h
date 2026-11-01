@@ -2,6 +2,8 @@
 #define __SYLAR_LOG_H__
 
 #include "singleton_util.h"
+#include "thread_util.h"
+#include "fiber_util.h"
 #include "lock_util.h"
 #include <map>
 #include <list>
@@ -17,7 +19,8 @@
 #define SYLAR_STREAM_LOG_LEVEL(level, logger) \
     if (level >= logger->getLevel()) \
         sylar::LogEventWrap(level, logger, sylar::LogEvent::ptr(new sylar::LogEvent( \
-            1,  2,  __LINE__,  time(nullptr),  "thread-1",  __FILE__))).getSS()
+            sylar::utils::Thread::GetThreadId(), sylar::utils::Fiber::GetFiberId(), \
+            __LINE__, time(nullptr), sylar::utils::Thread::GetThreadName(), __FILE__))).getSS()
 #define SYLAR_STREAM_LOG_DEBUG(logger) SYLAR_STREAM_LOG_LEVEL(sylar::LogLevel::Level::DEBUG, logger)
 #define SYLAR_STREAM_LOG_INFO(logger) SYLAR_STREAM_LOG_LEVEL(sylar::LogLevel::Level::INFO, logger)
 #define SYLAR_STREAM_LOG_WARN(logger) SYLAR_STREAM_LOG_LEVEL(sylar::LogLevel::Level::WARN, logger)
@@ -28,7 +31,8 @@
     do { \
         if (level >= logger->getLevel()) \
             sylar::LogEventWrap(level, logger, sylar::LogEvent::ptr(new sylar::LogEvent( \
-                1,  2,  __LINE__,  time(nullptr),  "thread-1",  __FILE__))).getSS() << msg; \
+                sylar::utils::Thread::GetThreadId(), sylar::utils::Fiber::GetFiberId(), \
+                __LINE__, time(nullptr), sylar::utils::Thread::GetThreadName(), __FILE__))).getSS() << msg; \
     } while (0)
 #define SYLAR_MSG_LOG_DEBUG(logger, msg) SYLAR_MSG_LOG_LEVEL(sylar::LogLevel::Level::DEBUG, logger, msg)
 #define SYLAR_MSG_LOG_INFO(logger, msg) SYLAR_MSG_LOG_LEVEL(sylar::LogLevel::Level::INFO, logger, msg)
@@ -40,7 +44,8 @@
     for (bool flag = true; flag; flag = false) { \
         if (level >= logger->getLevel()) \
             sylar::LogEventWrap(level, logger, sylar::LogEvent::ptr(new sylar::LogEvent( \
-                1,  2,  __LINE__,  time(nullptr),  "thread-1",  __FILE__))).getEvent()->format(fmt, ##__VA_ARGS__); \
+                sylar::utils::Thread::GetThreadId(), sylar::utils::Fiber::GetFiberId(), \
+                __LINE__, time(nullptr), sylar::utils::Thread::GetThreadName(), __FILE__))).getEvent()->format(fmt, ##__VA_ARGS__); \
     }
 #define SYLAR_FMT_LOG_DEBUG(logger, fmt, ...) SYLAR_FMT_LOG_LEVEL(sylar::LogLevel::Level::DEBUG, logger, fmt, ##__VA_ARGS__)
 #define SYLAR_FMT_LOG_INFO(logger, fmt, ...) SYLAR_FMT_LOG_LEVEL(sylar::LogLevel::Level::INFO, logger, fmt, ##__VA_ARGS__)
