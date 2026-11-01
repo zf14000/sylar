@@ -57,3 +57,6 @@ target_link_libraries(test_log_config PRIVATE sylar)
 
 add_executable(test_thread test/test_thread.cpp)
 target_link_libraries(test_thread PRIVATE sylar)
+
+add_executable(test_assert test/test_assert.cpp)
+target_link_libraries(test_assert PRIVATE sylar)
