@@ -77,6 +77,12 @@ Fiber::~Fiber() {
     SYLAR_STREAM_LOG_DEBUG(g_logger) << "Fiber::~Fiber id=" << m_id;
 }
 
+void Fiber::reset(std::function<void()> cb) {
+    m_cb = cb;
+    m_state = INIT;
+    makecontext(&m_ctx, &Fiber::MainFunc, 0);
+}
+
 void Fiber::swapIn() {
     SYLAR_ASSERT(m_state != EXEC && m_state != TERM && m_state != EXCEPT);
     SetCurFiber(this);

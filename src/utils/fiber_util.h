@@ -28,7 +28,10 @@ public:
     void swapIn();
     static void YieldReady();
     static void YieldHold();
+    void reset(std::function<void()> cb);
     uint32_t getId() const { return m_id; }
+    State getState() const { return m_state; }
+    void setState(State state) { m_state = state; }
 private:
     Fiber();
     void swapOut();

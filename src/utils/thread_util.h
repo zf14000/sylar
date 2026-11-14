@@ -13,7 +13,7 @@ class Thread : public std::enable_shared_from_this<Thread> {
 public:
     using ptr = std::shared_ptr<Thread>;
 
-    static Thread::ptr Create(const std::string& name, std::function<void(void* arg)> cb, void* arg);
+    static Thread::ptr Create(const std::string& name, std::function<void(void* arg)> cb, void* arg = nullptr);
     static pid_t GetTid();
     static pid_t GetThreadId();
     static const std::string& GetThreadName();

@@ -63,3 +63,6 @@ target_link_libraries(test_assert PRIVATE sylar)
 
 add_executable(test_fiber test/test_fiber.cpp)
 target_link_libraries(test_fiber PRIVATE sylar)
+
+add_executable(test_scheduler test/test_scheduler.cpp)
+target_link_libraries(test_scheduler PRIVATE sylar)
