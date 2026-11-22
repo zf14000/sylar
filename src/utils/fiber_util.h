@@ -8,7 +8,7 @@
 namespace sylar {
 namespace utils {
 
-class Fiber : std::enable_shared_from_this<Fiber> {
+class Fiber : public std::enable_shared_from_this<Fiber> {
 public:
     using ptr = std::shared_ptr<Fiber>;
     enum State {
@@ -21,6 +21,7 @@ public:
     };
 
     static void SetMainFiber();
+    static Fiber::ptr GetCurFiber();
     static uint32_t GetFiberId();
     static uint32_t GetFiberCount();
     Fiber(std::function<void()> cb, size_t stacksize = 0);
@@ -35,7 +36,6 @@ public:
 private:
     Fiber();
     void swapOut();
-    static Fiber* GetCurFiber();
     static void SetCurFiber(Fiber* f);
     static void MainFunc();
 private:

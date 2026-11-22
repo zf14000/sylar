@@ -22,8 +22,12 @@ void Fiber::SetMainFiber() {
     SetCurFiber(t_main_fiber.get());
 }
 
-Fiber* Fiber::GetCurFiber() {
-    return t_cur_fiber;
+Fiber::ptr Fiber::GetCurFiber() {
+    if (!t_cur_fiber) {
+        return nullptr;
+    }
+
+    return t_cur_fiber->shared_from_this(); 
 }
 
 void Fiber::SetCurFiber(Fiber* f) {
@@ -70,7 +74,7 @@ Fiber::~Fiber() {
         }
     } else {
         SYLAR_ASSERT(m_state == EXEC);
-        if (GetCurFiber() == this) {
+        if (t_cur_fiber == this) {
             SetCurFiber(nullptr);
         }
     }
@@ -98,7 +102,7 @@ void Fiber::swapOut() {
 }
 
 void Fiber::YieldReady() {
-    auto cur = GetCurFiber();
+    Fiber::ptr cur = GetCurFiber();
     cur->m_state = READY;
     SetCurFiber(t_main_fiber.get());
     t_main_fiber->m_state = EXEC;
@@ -106,7 +110,7 @@ void Fiber::YieldReady() {
 }
 
 void Fiber::YieldHold() {
-    auto cur = GetCurFiber();
+    Fiber::ptr cur = GetCurFiber();
     cur->m_state = HOLD;
     SetCurFiber(t_main_fiber.get());
     t_main_fiber->m_state = EXEC;
@@ -114,7 +118,7 @@ void Fiber::YieldHold() {
 }
 
 void Fiber::MainFunc() {
-    auto cur = GetCurFiber();
+    Fiber::ptr cur = GetCurFiber();
     try {
         if (cur->m_cb) {
             cur->m_cb();
@@ -132,9 +136,12 @@ void Fiber::MainFunc() {
             << sylar::utils::BacktraceToString();
         cur->m_state = EXCEPT;
     }
-    cur->swapOut();
 
-    SYLAR_STREAM_LOG_FATAL(g_logger) << "Code cannot reach here, fiber_id=" << cur->getId();
+    Fiber* raw_ptr = cur.get();
+    cur.reset();
+    raw_ptr->swapOut();
+
+    SYLAR_STREAM_LOG_FATAL(g_logger) << "Code cannot reach here, fiber_id=" << raw_ptr->getId();
     SYLAR_ASSERT(false);
 }
 
