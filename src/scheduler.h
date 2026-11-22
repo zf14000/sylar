@@ -10,29 +10,29 @@ class Scheduler {
 public:
     using ptr = std::shared_ptr<Scheduler>;
 
+    static Scheduler* GetThis();
     Scheduler(uint32_t threadCount = 1, const std::string& name = "scheduler");
-    ~Scheduler();
+    virtual ~Scheduler();
 
     void start();
     void stop();
-    bool isStop();
 
-    template <typename FiberOrCb>
-    void addTask(FiberOrCb f, pid_t t = -1) {
+    template <typename T>
+    void schedule(T f, pid_t t = -1) {
         bool need_tickle = false;
         LockType::Lock lock(m_lock);
-        need_tickle |= addTaskNoLock(f, t);
+        need_tickle |= scheduleNoLock(f, t);
         if (need_tickle) {
             tickle();
         }
     }
 
     template <typename InputIterator>
-    void addTask(InputIterator begin, InputIterator end, pid_t t = -1) {
+    void schedule(InputIterator begin, InputIterator end, pid_t t = -1) {
         bool need_tickle = false;
         LockType::Lock lock(m_lock);
         while (begin != end) {
-            need_tickle |= addTaskNoLock(&*begin, t);
+            need_tickle |= scheduleNoLock(&*begin, t);
             ++begin;
         }
         if (need_tickle) {
@@ -42,18 +42,18 @@ public:
 private:
     using LockType = sylar::utils::Mutex;
 
-    struct Task {
-        Task() {}
+    struct FiberOrCb {
+        FiberOrCb() {}
 
-        Task(sylar::utils::Fiber::ptr f, pid_t t = -1) : fiber(f), thread(t) {}
+        FiberOrCb(sylar::utils::Fiber::ptr f, pid_t t = -1) : fiber(f), thread(t) {}
 
-        Task(sylar::utils::Fiber::ptr* f, pid_t t = -1) : thread(t) {
+        FiberOrCb(sylar::utils::Fiber::ptr* f, pid_t t = -1) : thread(t) {
             fiber.swap(*f);
         }
 
-        Task(std::function<void(void)> f, pid_t t = -1) : cb(f), thread(t) {}
+        FiberOrCb(std::function<void(void)> f, pid_t t = -1) : cb(f), thread(t) {}
 
-        Task(std::function<void(void)>* f, pid_t t = -1) : thread(t) {
+        FiberOrCb(std::function<void(void)>* f, pid_t t = -1) : thread(t) {
             cb.swap(*f);
         }
 
@@ -68,18 +68,21 @@ private:
         pid_t thread = -1;
     };
 
-    virtual void run();
+    void run();
     virtual void idle();
     virtual void tickle();
 
-    template<typename FiberOrCb>
-    bool addTaskNoLock(FiberOrCb f, pid_t t) {
+    template<typename T>
+    bool scheduleNoLock(T f, pid_t t) {
         // ET 触发方式，避免惊群
         bool need_tickle = m_tasks.empty();
-        Task task(f, t);
+        FiberOrCb task(f, t);
         m_tasks.emplace_back(std::move(task));
         return need_tickle;
     }
+protected:
+    virtual bool isStop();
+    bool hasIdleThread();
 private:
     LockType m_lock;
     std::string m_name;
@@ -88,7 +91,7 @@ private:
     std::atomic<uint32_t> m_activeThreads;
     std::atomic<uint32_t> m_idleThreads;
     std::vector<sylar::utils::Thread::ptr> m_threads;
-    std::vector<Task> m_tasks;
+    std::vector<FiberOrCb> m_tasks;
 };
 
 }

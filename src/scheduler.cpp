@@ -1,10 +1,16 @@
 #include "scheduler.h"
 #include "log.h"
+#include "assert_util.h"
 #include <unistd.h>
 
 namespace sylar {
 
 static Logger::ptr g_logger = SYLAR_LOG_NAME("root");
+static thread_local Scheduler* t_scheduler = nullptr;
+
+Scheduler* Scheduler::GetThis() {
+    return t_scheduler;
+}
 
 Scheduler::Scheduler(uint32_t threadCount, const std::string& name)
         :m_name(name)
@@ -13,12 +19,12 @@ Scheduler::Scheduler(uint32_t threadCount, const std::string& name)
         ,m_activeThreads(0)
         ,m_idleThreads(threadCount) {
     SYLAR_STREAM_LOG_DEBUG(g_logger) << "Scheduler::Scheduler";
+    t_scheduler = this;
 }
 
 Scheduler::~Scheduler() {
-    SYLAR_STREAM_LOG_DEBUG(g_logger) << "Scheduler::~Scheduler begin";
-    stop();
-    SYLAR_STREAM_LOG_DEBUG(g_logger) << "Scheduler::~Scheduler end";
+    SYLAR_STREAM_LOG_DEBUG(g_logger) << "Scheduler::~Scheduler";
+    SYLAR_ASSERT(m_stop);
 }
 
 void Scheduler::start() {
@@ -50,18 +56,14 @@ void Scheduler::stop() {
     }
 }
 
-bool Scheduler::isStop() {
-    LockType::Lock lock(m_lock);
-    return m_stop && m_activeThreads == 0 && m_tasks.empty();
-}
-
 void Scheduler::run() {
+    t_scheduler = this;
     sylar::utils::Fiber::SetMainFiber();
     sylar::utils::Fiber::ptr cb_fiber;
     sylar::utils::Fiber::ptr idle_fiber = std::make_shared<sylar::utils::Fiber>(std::bind(&Scheduler::idle, this));
 
     while (true) {
-        Task task;
+        FiberOrCb task;
         bool found = false;
         bool need_tickle = false;
 
@@ -111,7 +113,7 @@ void Scheduler::run() {
                 cb_fiber->swapIn();
                 if (cb_fiber->getState() == sylar::utils::Fiber::State::READY) {
                     lock.lock();
-                    m_tasks.emplace_back(Task(cb_fiber));
+                    m_tasks.emplace_back(FiberOrCb(cb_fiber));
                     lock.unlock();
                 }
                 cb_fiber.reset();
@@ -140,6 +142,15 @@ void Scheduler::idle() {
 
 void Scheduler::tickle() {
     SYLAR_STREAM_LOG_DEBUG(g_logger) << "Scheduler::tickle";
+}
+
+bool Scheduler::isStop() {
+    LockType::Lock lock(m_lock);
+    return m_stop && m_activeThreads == 0 && m_tasks.empty();
+}
+
+bool Scheduler::hasIdleThread() {
+    return m_idleThreads > 0;
 }
 
 }

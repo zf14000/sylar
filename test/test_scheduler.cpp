@@ -22,10 +22,11 @@ int main() {
     SYLAR_STREAM_LOG_INFO(g_logger) << "test scheduler begin";
     {
         sylar::Scheduler::ptr scheduler(new sylar::Scheduler(2));
-        scheduler->addTask(test_cb);
+        scheduler->schedule(test_cb);
         auto fiber = sylar::utils::Fiber::ptr(new sylar::utils::Fiber(test_fiber));
-        scheduler->addTask(fiber);
         scheduler->start();
+        scheduler->schedule(fiber);
+        scheduler->stop();
     }
     SYLAR_STREAM_LOG_INFO(g_logger) << "test scheduler end";
     return 0;
